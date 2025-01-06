@@ -6,12 +6,14 @@ from multiprocessing import Pool
 import re
 from functools import reduce
 
-def map_words(text):
-    """Розбиває текст на слова та рахує їх."""
-    # Очищуємо текст від знаків пунктуації та інших символів
-    text = re.sub(r'[^\w\s]', '', text.lower())  
-    words = text.split()  # Розбиваємо текст на слова за пробілами
-    return Counter(words)
+def chunkify(data, chunk_size):
+    """Розбиває дані на частини (chunks)."""
+    for i in range(0, len(data), chunk_size):
+        yield data[i:i + chunk_size]
+
+def map_words(chunk):
+    """Рахує слова у фрагменті тексту."""
+    return Counter(chunk)
 
 def reduce_counts(counts1, counts2):
     """Об'єднує два словники з кількістю слів."""
@@ -20,7 +22,11 @@ def reduce_counts(counts1, counts2):
 
 def map_reduce(text, num_processes):
     """Застосовує парадигму MapReduce для підрахунку слів."""
-    chunks = [text[i::num_processes] for i in range(num_processes)]
+    words = re.findall(r'\b\w+\b', text.lower())
+
+    chunk_size = len(words) // num_processes
+    chunks = list(chunkify(words, chunk_size))
+
     with Pool(num_processes) as pool:
         mapped_values = pool.map(map_words, chunks)
         reduced_counts = reduce(reduce_counts, mapped_values)
@@ -37,7 +43,7 @@ def visualize_top_words(word_counts, top_n=10):
     plt.xlabel("Слова")
     plt.ylabel("Частота")
     plt.title(f"Топ-{top_n} найчастіше вживаних слів")
-    plt.xticks(rotation=45, ha='right', fontsize=8) 
+    plt.xticks()
     plt.tight_layout()
     plt.show()
 
